@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>部門聚餐投票</title>
+<title>聚餐投票</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -29,9 +29,11 @@
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+/* 中英文切換：靜態文字成對寫，依 <html lang> 顯示其中一種 */
+html[lang="en"] .zh, html:not([lang="en"]) .en{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65;padding:0 16px}
-.wrap{max-width:820px;margin:0 auto;padding-block:32px 64px;display:flex;flex-direction:column;gap:40px}
+.wrap{max-width:820px;margin:0 auto;padding-block:20px 64px;display:flex;flex-direction:column;gap:28px}
 h1,h2,h3{font-family:var(--f-display);font-weight:700;text-wrap:balance;margin:0;line-height:1.3}
 h1{font-size:clamp(28px,6vw,40px)}
 h2{font-size:24px}
@@ -43,6 +45,11 @@ p{margin:0}
 a{color:var(--jade)}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:34px}
+.lang-btn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:5px 14px;cursor:pointer;font-size:13px}
+.lang-btn .k{color:var(--muted);letter-spacing:.06em}
+.lang-btn:hover{border-color:var(--jade)}
 
 header{display:flex;flex-direction:column;gap:14px}
 .eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted)}
@@ -122,8 +129,17 @@ input.bad{border-color:var(--warn);background:var(--warn-soft)}
 .tbl thead th{border-top:0;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.05em}
 .tbl td.r,.tbl th.r{text-align:right}
 .ok{color:var(--jade);font-weight:700}
+.no{color:var(--warn);font-weight:700}
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 @media (prefers-reduced-motion:no-preference){.fill{transition:width .4s ease}}
+.dept-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dept-card{display:flex;flex-direction:column;gap:4px;padding:20px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper);color:var(--ink);text-decoration:none}
+.dept-card b{font-family:var(--f-display);font-size:24px}
+.dept-card span{color:var(--muted);font-size:14px}
+.dept-card:hover{border-color:var(--jade)}
+@media (max-width:520px){.dept-grid{grid-template-columns:minmax(0,1fr)}}
+#deptPick{display:flex;flex-direction:column;gap:14px}
+#deptPage{display:flex;flex-direction:column;gap:40px}
 .who-pick{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px}
 .who-pick:empty{display:none}
 .who-pick button{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:6px 14px;cursor:pointer;font-weight:500}
@@ -131,106 +147,190 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 .who-pick button:disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
 .code-on{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 .code-on .btn{padding:5px 12px}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
 <body>
 
 <div class="wrap">
-  <header>
-    <div class="eyebrow">部門聚餐 · 5 人 · 高鐵站、中壢 或 新屋九斗里附近</div>
-    <h1>這次聚餐吃哪家？</h1>
-    <p class="muted">每人兩票、匿名投票。每家餐廳都要能在每人 1,500 元以內吃完（含服務費），沒有人需要自己補錢。</p>
-    <div class="rules">
-      <div><b class="num">5</b><span>參加人數</span></div>
-      <div><b class="num">2 票</b><span>每人，投給不同餐廳</span></div>
-      <div><b class="num">≤ 1,500</b><span>每人上限，含一成服務費</span></div>
-      <div><b class="num">1 家</b><span>每人最多新增，可不新增</span></div>
+  <div class="topbar">
+    <a class="small" href="#" id="switchDept" hidden><span class="zh">← 切換部門</span><span class="en">← Switch department</span></a>
+    <button class="lang-btn" type="button" id="langBtn" aria-label="Language"><span class="k">Language</span><b><span class="zh">English</span><span class="en">中文</span></b></button>
+  </div>
+
+  <section id="deptPick" hidden>
+    <div class="eyebrow"><span class="zh">聚餐投票</span><span class="en">DINNER VOTE</span></div>
+    <h1><span class="zh">你是哪個部門？</span><span class="en">Which department are you in?</span></h1>
+    <p class="muted"><span class="zh">兩個部門各自投票，票數分開計算。</span><span class="en">Each department votes separately and has its own tally.</span></p>
+    <div class="dept-grid">
+      <a class="dept-card" href="#tw"><b><span class="zh">台灣廠</span><span class="en">Taiwan Plant</span></b><span><span class="zh">28 人 · 5 家餐廳</span><span class="en">28 people · 5 restaurants</span></span></a>
+      <a class="dept-card" href="#it"><b><span class="zh">IT部門</span><span class="en">IT Department</span></b><span><span class="zh">5 人 · 可自行新增餐廳</span><span class="en">5 people · can add restaurants</span></span></a>
     </div>
-    <div class="status" id="status">正在連線投票資料…</div>
+  </section>
+
+  <div id="deptPage" hidden>
+  <header>
+    <div class="eyebrow" data-dept="it"><span class="zh">IT部門聚餐 · 5 人 · 高鐵站、中壢 或 新屋九斗里附近</span><span class="en">IT DEPARTMENT DINNER · 5 PEOPLE · NEAR HSR STATION, ZHONGLI OR XINWU</span></div>
+    <div class="eyebrow" data-dept="tw"><span class="zh">台灣廠聚餐 · 28 人</span><span class="en">TAIWAN PLANT DINNER · 28 PEOPLE</span></div>
+    <h1 data-dept="it"><span class="zh">IT部門聚餐吃哪家？</span><span class="en">Where should IT have dinner?</span></h1>
+    <h1 data-dept="tw"><span class="zh">台灣廠聚餐吃哪家？</span><span class="en">Where should the Taiwan Plant have dinner?</span></h1>
+    <p class="muted" data-dept="it"><span class="zh">每人兩票、匿名投票。每家餐廳都要能在每人 1,500 元以內吃完（含服務費），沒有人需要自己補錢。</span><span class="en">Two votes each, anonymous. Every restaurant must fit within NT$1,500 per person including service charge, so nobody pays out of pocket.</span></p>
+    <p class="muted" data-dept="tw"><span class="zh">每人一票、匿名投票，從下面 5 家餐廳中選。先選一個還沒被選走的角色，就能開始投票。</span><span class="en">One vote each, anonymous. Pick one of the 5 restaurants below. Choose a character nobody has taken yet, then vote.</span></p>
+    <div class="rules" data-dept="it">
+      <div><b class="num">5</b><span><span class="zh">參加人數</span><span class="en">People</span></span></div>
+      <div><b class="num"><span class="zh">2 票</span><span class="en">2 votes</span></b><span><span class="zh">每人，投給不同餐廳</span><span class="en">Each, for different restaurants</span></span></div>
+      <div><b class="num">≤ 1,500</b><span><span class="zh">每人上限，含一成服務費</span><span class="en">Per person, incl. 10% service</span></span></div>
+      <div><b class="num"><span class="zh">1 家</span><span class="en">1 place</span></b><span><span class="zh">每人最多新增，可不新增</span><span class="en">Each may add (optional)</span></span></div>
+    </div>
+    <div class="rules" data-dept="tw">
+      <div><b class="num">28</b><span><span class="zh">參加人數</span><span class="en">People</span></span></div>
+      <div><b class="num"><span class="zh">1 票</span><span class="en">1 vote</span></b><span><span class="zh">每人</span><span class="en">Each</span></span></div>
+      <div><b class="num"><span class="zh">5 家</span><span class="en">5</span></b><span><span class="zh">候選餐廳</span><span class="en">Restaurants to choose from</span></span></div>
+      <div><b><span class="zh">不開放</span><span class="en">No</span></b><span><span class="zh">新增其他餐廳</span><span class="en">Adding other restaurants</span></span></div>
+    </div>
+    <div class="status" id="status" hidden></div>
   </header>
 
   <div class="ballot-bar" id="ballotBar">
-    <div class="stamps" aria-hidden="true"><span class="stamp" id="s1"></span><span class="stamp" id="s2"></span></div>
-    <div class="msg" id="ballotMsg">先選你的代號就能投票</div>
-    <div class="code-on" id="codeOn" hidden><span>你是 <b id="codeShow"></b></span><button class="btn ghost" type="button" id="codeOut">換人</button></div>
-    <div class="who-pick" id="whoPick" role="group" aria-label="選擇你的代號"></div>
+    <div class="stamps" id="stamps" aria-hidden="true"></div>
+    <div class="msg" id="ballotMsg"></div>
+    <div class="code-on" id="codeOn" hidden><span><span class="zh">你是</span><span class="en">You are</span> <b id="codeShow"></b></span><button class="btn ghost" type="button" id="codeOut"></button></div>
+    <div class="who-pick" id="whoPick" role="group" aria-label="Characters"></div>
   </div>
 
   <section id="optionsSec">
-    <div class="sec-head"><h2>候選餐廳</h2><span class="muted small" id="optCount"></span></div>
+    <div class="sec-head"><h2><span class="zh">候選餐廳</span><span class="en">Restaurants</span></h2><span class="muted small" id="optCount"></span></div>
     <div class="list" id="claudeList"></div>
-    <h3>同事新增</h3>
-    <div class="list" id="mateList"><div class="empty" style="border-top:0">還沒有人新增餐廳。想推薦別家的話，可以在下方新增一家。</div></div>
+    <h3 data-dept="it"><span class="zh">同事新增</span><span class="en">Added by colleagues</span></h3>
+    <div class="list" id="mateList" data-dept="it"></div>
   </section>
 
-  <section id="addSec">
-    <div class="sec-head"><h2>新增一家餐廳</h2><span class="muted small">每人最多一家，之後可修改或撤回</span></div>
+  <section id="addSec" data-dept="it">
+    <div class="sec-head"><h2><span class="zh">新增一家餐廳</span><span class="en">Add a restaurant</span></h2><span class="muted small"><span class="zh">每人最多一家，之後可修改或撤回</span><span class="en">One per person; you can edit or withdraw it later</span></span></div>
     <div id="addArea"></div>
   </section>
 
   <section id="resultSec">
-    <div class="sec-head"><h2>目前票數</h2><span class="muted small num" id="voterCount">0 / 5 人已投票</span></div>
-    <div class="results" id="results"><p class="locked">投完票後才看得到目前票數，避免影響大家的選擇。</p></div>
+    <div class="sec-head"><h2><span class="zh">目前票數</span><span class="en">Current results</span></h2><span class="muted small num" id="voterCount"></span></div>
+    <div class="results" id="results"></div>
   </section>
 
-  <section>
-    <h2>聚餐規劃</h2>
+  <section data-dept="tw">
+    <h2><span class="zh">訂位注意事項</span><span class="en">Booking notes</span></h2>
     <div class="plan">
       <div class="step">
-        <span class="when">第 1–3 天 · 投票</span>
-        <h3>5 人都投完就截止</h3>
+        <span class="when"><span class="zh">投票</span><span class="en">VOTING</span></span>
+        <h3><span class="zh">大家投完就截止</span><span class="en">Voting closes once everyone has voted</span></h3>
         <ul>
-          <li>每人投 2 票給不同餐廳，想推薦別家可以先新增再投。</li>
-          <li>同票時，先比較每人預估金額較低的那家；還是平手就由主辦人決定。</li>
-          <li>得票最高的餐廳若訂不到，改訂第二名。</li>
+          <li class="zh">每人投 1 票，得票最高的那家就是這次聚餐地點。</li>
+          <li class="en">Everyone gets 1 vote. The restaurant with the most votes wins.</li>
+          <li class="zh">同票時由主辦人決定；得票最高的訂不到，就改訂第二名。</li>
+          <li class="en">The organizer breaks ties. If the winner can't take the booking, we go with second place.</li>
         </ul>
       </div>
       <div class="step">
-        <span class="when">投票結束當天 · 訂位</span>
-        <h3>打電話訂 5 位，確認價格</h3>
+        <span class="when"><span class="zh">訂位</span><span class="en">BOOKING</span></span>
+        <h3><span class="zh">28 人要提早訂</span><span class="en">Book early for 28 people</span></h3>
         <ul>
-          <li>訂位時再問一次目前價格和服務費，網路上的價格可能已調整。</li>
-          <li>鐵板燒：3 位以上要先付訂金 1,000 元，只收現金，當天可折抵。</li>
-          <li>燒肉：訂位時問清楚會長盛合的價格和是否收服務費，5 人總額抓 7,000 元內。</li>
-          <li>自助餐：只訂週一到週四晚餐，週五晚上和週末會超過預算。</li>
+          <li class="zh">饗饗、旭集是熱門吃到飽，通常要提前一個月以上訂位，28 人可能要分成好幾桌或問團體訂位。</li>
+          <li class="en">INPARADISE and Sunrise are popular buffets and usually need booking a month or more ahead. 28 people may need several tables or a group booking.</li>
+          <li class="zh">182 手做料理是每桌 10,000＋10%（11,000 元），28 人大約要 3 桌，每桌坐幾人會影響每人金額，訂位時問清楚一桌最多幾位。</li>
+          <li class="en">182 charges NT$10,000 + 10% (NT$11,000) per table. 28 people need about 3 tables, so the per-person cost depends on how many sit at each. Ask the maximum per table when booking.</li>
+          <li class="zh">喜來登優廚是週三到週日才有午晚餐，週一、週二不能訂。</li>
+          <li class="en">Sheraton U Kitchen serves lunch and dinner Wednesday to Sunday only. Monday and Tuesday aren't available.</li>
+          <li class="zh">所有價格訂位時都再確認一次，網路上的價格可能已經調整。</li>
+          <li class="en">Confirm prices when booking. Prices found online may have changed.</li>
         </ul>
       </div>
       <div class="step">
-        <span class="when">聚餐前 · 交通與預算</span>
-        <h3>先講好集合方式和點餐上限</h3>
+        <span class="when"><span class="zh">交通</span><span class="en">GETTING THERE</span></span>
+        <h3><span class="zh">饗饗在台北</span><span class="en">INPARADISE is in Taipei</span></h3>
         <ul>
-          <li>5 人總預算 7,500 元（含服務費）。燒肉要現場加點，點餐時以這個總額為上限。</li>
-          <li>飲料、酒水也算在 1,500 元內，要額外加點請自費並事先說好。</li>
-          <li>從新屋出發到高鐵站一帶建議共乘，停車場與集合時間先在群組確認。</li>
+          <li class="zh">饗饗在台北信義區微風信義 46 樓，離桃園比較遠，選這家的話要安排交通，例如包車或搭高鐵、捷運。</li>
+          <li class="en">INPARADISE is on the 46th floor of Breeze Xinyi in Taipei, far from Taoyuan. If it wins we need transport, such as a chartered bus or the HSR and MRT.</li>
+          <li class="zh">其他四家都在桃園，可以開車或共乘。</li>
+          <li class="en">The other four are in Taoyuan and easy to reach by car or carpool.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section data-dept="it">
+    <h2><span class="zh">聚餐規劃</span><span class="en">Dinner plan</span></h2>
+    <div class="plan">
+      <div class="step">
+        <span class="when"><span class="zh">第 1–3 天 · 投票</span><span class="en">DAYS 1–3 · VOTING</span></span>
+        <h3><span class="zh">5 人都投完就截止</span><span class="en">Voting closes once all 5 have voted</span></h3>
+        <ul>
+          <li class="zh">每人投 2 票給不同餐廳，想推薦別家可以先新增再投。</li>
+          <li class="en">Everyone casts 2 votes for different restaurants. To suggest another place, add it first, then vote.</li>
+          <li class="zh">同票時，先比較每人預估金額較低的那家；還是平手就由主辦人決定。</li>
+          <li class="en">On a tie, the cheaper place per person wins. If still tied, the organizer decides.</li>
+          <li class="zh">得票最高的餐廳若訂不到，改訂第二名。</li>
+          <li class="en">If the winner can't take the booking, we go with second place.</li>
         </ul>
       </div>
       <div class="step">
-        <span class="when">聚餐當天</span>
-        <h3>吃完結帳就散會</h3>
+        <span class="when"><span class="zh">投票結束當天 · 訂位</span><span class="en">AFTER VOTING · BOOKING</span></span>
+        <h3><span class="zh">打電話訂 5 位，確認價格</span><span class="en">Call to book for 5 and confirm prices</span></h3>
         <ul>
-          <li>不安排續攤和其他活動，吃完就各自回家，整頓飯大約 1.5 小時。</li>
-          <li>由一人統一結帳，收據拍照給大家，確認每人沒有超過 1,500 元。</li>
+          <li class="zh">訂位時再問一次目前價格和服務費，網路上的價格可能已調整。</li>
+          <li class="en">Ask for the current price and service charge when booking. Prices found online may have changed.</li>
+          <li class="zh">鐵板燒：3 位以上要先付訂金 1,000 元，只收現金，當天可折抵。</li>
+          <li class="en">Teppanyaki: groups of 3+ pay a NT$1,000 cash deposit, deducted from the bill.</li>
+          <li class="zh">燒肉：訂位時問清楚會長盛合的價格和是否收服務費，5 人總額抓 7,000 元內。</li>
+          <li class="en">Yakiniku: confirm the platter price and service charge. Keep the total for 5 under NT$7,000.</li>
+          <li class="zh">自助餐：只訂週一到週四晚餐，週五晚上和週末會超過預算。</li>
+          <li class="en">Buffet: book a Monday–Thursday dinner only. Friday dinner and weekends go over budget.</li>
+        </ul>
+      </div>
+      <div class="step">
+        <span class="when"><span class="zh">聚餐前 · 交通與預算</span><span class="en">BEFORE DINNER · TRANSPORT AND BUDGET</span></span>
+        <h3><span class="zh">先講好集合方式和點餐上限</span><span class="en">Agree on meeting point and spending cap</span></h3>
+        <ul>
+          <li class="zh">5 人總預算 7,500 元（含服務費）。燒肉要現場加點，點餐時以這個總額為上限。</li>
+          <li class="en">Total budget for 5 is NT$7,500 including service charge. Yakiniku is ordered at the table, so keep to that total.</li>
+          <li class="zh">飲料、酒水也算在 1,500 元內，要額外加點請自費並事先說好。</li>
+          <li class="en">Drinks count toward the NT$1,500. Anything extra is paid personally and agreed in advance.</li>
+          <li class="zh">從新屋出發到高鐵站一帶建議共乘，停車場與集合時間先在群組確認。</li>
+          <li class="en">Carpool from Xinwu to the HSR area. Confirm parking and meeting time in the group chat.</li>
+        </ul>
+      </div>
+      <div class="step">
+        <span class="when"><span class="zh">聚餐當天</span><span class="en">ON THE DAY</span></span>
+        <h3><span class="zh">吃完結帳就散會</span><span class="en">Pay and head home after dinner</span></h3>
+        <ul>
+          <li class="zh">不安排續攤和其他活動，吃完就各自回家，整頓飯大約 1.5 小時。</li>
+          <li class="en">No second round or other activities. Dinner takes about 1.5 hours, then everyone heads home.</li>
+          <li class="zh">由一人統一結帳，收據拍照給大家，確認每人沒有超過 1,500 元。</li>
+          <li class="en">One person pays and shares a photo of the receipt to confirm nobody went over NT$1,500.</li>
         </ul>
       </div>
     </div>
 
-    <h3>三家推薦的預算試算（每人）</h3>
+    <h3><span class="zh">三家推薦的預算試算（每人）</span><span class="en">Budget check for the 3 recommendations (per person)</span></h3>
     <div class="tbl">
       <table>
-        <thead><tr><th>餐廳</th><th class="r">餐費</th><th class="r">服務費</th><th class="r">其他</th><th class="r">每人合計</th><th class="r">是否在 1,500 內</th></tr></thead>
+        <thead><tr>
+          <th><span class="zh">餐廳</span><span class="en">Restaurant</span></th>
+          <th class="r"><span class="zh">餐費</span><span class="en">Meal</span></th>
+          <th class="r"><span class="zh">服務費</span><span class="en">Service</span></th>
+          <th class="r"><span class="zh">其他</span><span class="en">Other</span></th>
+          <th class="r"><span class="zh">每人合計</span><span class="en">Total</span></th>
+          <th class="r"><span class="zh">是否在 1,500 內</span><span class="en">Within 1,500?</span></th>
+        </tr></thead>
         <tbody>
-          <tr><td>海童鐵板料亭（1280 套餐）</td><td class="r num">1,280</td><td class="r num">128</td><td class="r num">0</td><td class="r num">1,408</td><td class="r ok">是</td></tr>
-          <tr><td>藏王極上燒肉 中壢店（會長盛合＋加點）</td><td class="r num">約 1,200–1,400</td><td class="r num">訂位時確認</td><td class="r num">0</td><td class="r num">約 1,300</td><td class="r ok">是</td></tr>
-          <tr><td>Cozzi 逸·市集（平日晚餐）</td><td class="r num">1,180</td><td class="r num">118</td><td class="r num">0</td><td class="r num">1,298</td><td class="r ok">是</td></tr>
-          <tr><td>Cozzi 逸·市集（週五晚上、週末）</td><td class="r num">1,480</td><td class="r num">148</td><td class="r num">0</td><td class="r num">1,628</td><td class="r" style="color:var(--warn);font-weight:700">否</td></tr>
+          <tr><td><span class="zh">海童鐵板料亭（1280 套餐）</span><span class="en">Haitong Teppanyaki (1,280 set)</span></td><td class="r num">1,280</td><td class="r num">128</td><td class="r num">0</td><td class="r num">1,408</td><td class="r ok"><span class="zh">是</span><span class="en">Yes</span></td></tr>
+          <tr><td><span class="zh">藏王極上燒肉 中壢店（會長盛合＋加點）</span><span class="en">Zao Yakiniku Zhongli (platter + extras)</span></td><td class="r num"><span class="zh">約</span><span class="en">~</span> 1,200–1,400</td><td class="r num"><span class="zh">訂位時確認</span><span class="en">Ask when booking</span></td><td class="r num">0</td><td class="r num"><span class="zh">約</span><span class="en">~</span> 1,300</td><td class="r ok"><span class="zh">是</span><span class="en">Yes</span></td></tr>
+          <tr><td><span class="zh">Cozzi 逸·市集（平日晚餐）</span><span class="en">Cozzi Market (weekday dinner)</span></td><td class="r num">1,180</td><td class="r num">118</td><td class="r num">0</td><td class="r num">1,298</td><td class="r ok"><span class="zh">是</span><span class="en">Yes</span></td></tr>
+          <tr><td><span class="zh">Cozzi 逸·市集（週五晚上、週末）</span><span class="en">Cozzi Market (Fri dinner, weekends)</span></td><td class="r num">1,480</td><td class="r num">148</td><td class="r num">0</td><td class="r num">1,628</td><td class="r no"><span class="zh">否</span><span class="en">No</span></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted small">海童的 1680 套餐每人含服務費約 1,848 元，超過預算，訂位時請指定 1280 套餐。藏王燒肉以 4 人份會長盛合 4,580 元，加上 5 人份加點估算，加點時注意總額。Cozzi 的價格是飯店公告的 2026 年價格。新屋附近沒找到每人 1,000 元以上、又不是合菜的餐廳；想吃新屋的話可以自己新增。</p>
+    <p class="muted small"><span class="zh">海童的 1680 套餐每人含服務費約 1,848 元，超過預算，訂位時請指定 1280 套餐。藏王燒肉以 4 人份會長盛合 4,580 元，加上 5 人份加點估算，加點時注意總額。Cozzi 的價格是飯店公告的 2026 年價格。新屋附近沒找到每人 1,000 元以上、又不是合菜的餐廳；想吃新屋的話可以自己新增。</span><span class="en">Haitong's 1,680 set comes to about NT$1,848 per person with service and is over budget, so ask for the 1,280 set. The Zao estimate is the NT$4,580 four-person platter plus extras for 5; watch the total when adding dishes. Cozzi prices are the hotel's published 2026 prices. We found nothing in Xinwu at NT$1,000+ that isn't a shared-dish banquet; add one yourself if you'd like to eat there.</span></p>
   </section>
 
-  <footer>頁面不顯示誰投了哪一家，只顯示每家餐廳的票數。餐廳資訊整理自網路食記，價格與營業時間以店家當日公告為準。</footer>
+  <footer><span class="zh">頁面不顯示誰投了哪一家，只顯示每家餐廳的票數。餐廳資訊整理自網路資料，價格與營業時間以店家當日公告為準。地址保留中文，方便導航和叫車。</span><span class="en">The page never shows who voted for what, only vote counts. Restaurant details come from online sources; prices and hours are subject to each restaurant's current notice. Addresses are kept in Chinese for navigation and taxis.</span></footer>
+  </div>
 </div>
 
 <script>
@@ -238,26 +338,105 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 //   留空 = 使用同資料夾的 server.py（本機版）。
 const API_URL = "https://script.google.com/macros/s/AKfycbzswT1OdLkUNGRY7w98tUYp2Rs5k5N3yDtcwTvtN1rgo47q66noyMOcFZrPN5u-0nA7/exec";
 
-const LIMIT = 1500, PEOPLE = 5, VOTES = 2;
+const LIMIT = 1500; // IT 部門新增餐廳的每人上限
 const maps = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
 
+// 每家餐廳的文字都有中英兩份（*_en）；地址保留中文
 const CLAUDE_PICKS = [
-  { id:"c-haitong", name:"海童鐵板料亭", area:"高鐵站附近", price:1408, priceNote:"1280 套餐＋10%",
+  { id:"c-haitong", name:"海童鐵板料亭", name_en:"Haitong Teppanyaki", area:"高鐵站附近", price:1408,
+    priceNote:"1280 套餐＋10%", priceNote_en:"1,280 set + 10%",
     points:["高鐵站旁的無菜單鐵板燒，前菜、魚、海鮮、肉品、炒飯、甜點一路吃","套餐一道道上，大約 1.5 到 2 小時吃完","價格固定，最好控制預算"],
+    points_en:["Chef's-choice teppanyaki next to the HSR station: starters, fish, seafood, meat, fried rice and dessert","Served course by course, about 1.5–2 hours","Fixed price, the easiest to keep on budget"],
     meta:"大園區高鐵北路二段182號 · 03-287-8358 · 全預約制，訂金 1,000 元（現金）",
+    meta_en:"大園區高鐵北路二段182號 · 03-287-8358 · Reservation only, NT$1,000 cash deposit",
     q:"海童鐵板料亭 高鐵北路二段182號" },
-  { id:"c-zao", name:"藏王極上燒肉餐酒館 中壢店", area:"中壢附近", price:1300, priceNote:"組合餐＋加點估算",
+  { id:"c-zao", name:"藏王極上燒肉餐酒館 中壢店", name_en:"Zao Yakiniku Bistro (Zhongli)", area:"中壢附近", price:1300, approx:true,
+    priceNote:"組合餐＋加點估算", priceNote_en:"Platter + extras, estimate",
     points:["日本 A5 和牛燒肉，店員在桌邊代烤，不用自己顧烤網","4 人份「A5 和牛極究會長盛合」4,580 元，再加點一些就夠 5 人吃","在中壢高中附近，旁邊有大型停車場"],
+    points_en:["Japanese A5 wagyu yakiniku, grilled at the table by staff","The 4-person A5 wagyu platter is NT$4,580; add a few dishes for 5","Near Zhongli Senior High School, large parking lot next door"],
     meta:"中壢區中央西路二段268號 · 03-493-8878 · 平日 17:00 起，週末 11:30–16:00、17:00 起",
+    meta_en:"中壢區中央西路二段268號 · 03-493-8878 · Weekdays from 17:00; weekends 11:30–16:00, from 17:00",
     q:"藏王極上燒肉餐酒館 中壢區中央西路二段268號" },
-  { id:"c-cozzi", name:"和逸飯店 Cozzi Market 逸·市集", area:"高鐵站附近", price:1298, priceNote:"平日晚餐 1,180＋10%",
+  { id:"c-cozzi", name:"和逸飯店 Cozzi Market 逸·市集", name_en:"Cozzi Market (Hotel Cozzi Blu Taoyuan)", area:"高鐵站附近", price:1298,
+    priceNote:"平日晚餐 1,180＋10%", priceNote_en:"Weekday dinner 1,180 + 10%",
     points:["飯店自助餐吃到飽，中西日式都有，各拿各的，最不用協調點菜","只能訂週一到週四晚餐；週五晚上和週末每人 1,628 元，會超過預算","在 Xpark 和華泰名品城旁邊，飯店有停車場"],
+    points_en:["Hotel buffet with Chinese, Western and Japanese food; no need to agree on dishes","Monday–Thursday dinner only; Friday dinner and weekends are NT$1,628 per person, over budget","Next to Xpark and Gloria Outlets, hotel parking available"],
     meta:"中壢區春德路105號（和逸飯店桃園館）· 晚餐 18:00–21:00",
+    meta_en:"中壢區春德路105號 (Hotel Cozzi Blu Taoyuan) · Dinner 18:00–21:00",
     q:"和逸飯店 桃園館 Cozzi Market 逸市集" },
 ];
 
-let who = "", token = "", srv = null, saving = false, editing = false, online = false, releaseArmed = false;
-try { who = localStorage.getItem("dinnerWho") || ""; token = localStorage.getItem("dinnerToken") || ""; } catch {}
+// 台灣廠：主辦人指定的 5 家，不開放新增
+const TW_PICKS = [
+  { id:"t-inparadise", name:"饗饗 INPARADISE 信義店", name_en:"INPARADISE (Xinyi)", area:"台北信義", price:1639,
+    priceNote:"1,490＋10%", priceNote_en:"1,490 + 10%",
+    points:["百匯吃到飽，在微風信義 46 樓，可以看到 101","熱門餐廳，通常要提前一個月以上訂位"],
+    points_en:["All-you-can-eat buffet on the 46th floor of Breeze Xinyi, with a view of Taipei 101","Very popular; usually needs booking a month or more ahead"],
+    meta:"台北市信義區忠孝東路五段68號46樓 · 02-8780-9988", meta_en:"台北市信義區忠孝東路五段68號46樓 · 02-8780-9988",
+    q:"饗饗 INPARADISE 信義店 台北市信義區忠孝東路五段68號" },
+  { id:"t-sunrise", name:"旭集 和食集錦 中茂店", name_en:"Sunrise Japanese Buffet (Zhongmao)", area:"桃園中茂", price:1639,
+    priceNote:"1,490＋10%", priceNote_en:"1,490 + 10%",
+    points:["日式料理吃到飽，在中茂新天地 12 樓","午餐 11:30–14:00、晚餐 17:30–21:30"],
+    points_en:["Japanese all-you-can-eat buffet on the 12th floor of Zhongmao Mall","Lunch 11:30–14:00, dinner 17:30–21:30"],
+    meta:"桃園市桃園區同德五街61號12樓 · 03-355-3505", meta_en:"桃園市桃園區同德五街61號12樓 · 03-355-3505",
+    q:"旭集 和食集錦 中茂店 桃園市桃園區同德五街61號" },
+  { id:"t-hoshoto", name:"火燒島日式平價啤酒屋", name_en:"Huoshaodao Izakaya", area:"中壢", price:1500,
+    priceNote:"主辦人提供的價格", priceNote_en:"Price from the organizer",
+    points:["日式料理和快炒，氣氛輕鬆","營業到凌晨，16:00–03:00"],
+    points_en:["Japanese dishes and stir-fries, relaxed atmosphere","Open late, 16:00–03:00"],
+    meta:"桃園市中壢區環西路二段415號 · 03-493-1505", meta_en:"桃園市中壢區環西路二段415號 · 03-493-1505",
+    q:"火燒島日式平價啤酒屋 桃園市中壢區環西路二段415號" },
+  { id:"t-sheraton", name:"桃園喜來登酒店 優廚西餐廳", name_en:"Sheraton Taoyuan – U Kitchen", area:"大園", price:1298,
+    priceNote:"1,180＋10%", priceNote_en:"1,180 + 10%",
+    points:["飯店自助餐吃到飽，跨國界料理","只有週三到週日有午晚餐：午餐 11:30–14:00、晚餐 17:30–20:30"],
+    points_en:["Hotel buffet with international cuisine","Lunch and dinner Wednesday–Sunday only: lunch 11:30–14:00, dinner 17:30–20:30"],
+    meta:"桃園市大園區大觀路777號 · 03-385-1188", meta_en:"桃園市大園區大觀路777號 · 03-385-1188",
+    q:"桃園喜來登酒店 優廚西餐廳 桃園市大園區大觀路777號" },
+  { id:"t-182", name:"182 手作平價創意料理", name_en:"182 Creative Chinese Cuisine", area:"中壢", price:11000, perTable:true,
+    priceNote:"10,000＋10%", priceNote_en:"10,000 + 10%",
+    points:["中式創意桌菜，有包廂","28 人大約 3 桌，每人金額看一桌坐幾位"],
+    points_en:["Creative Chinese banquet dishes, private rooms available","About 3 tables for 28; cost per person depends on seats per table"],
+    meta:"桃園市中壢區新生路182號10樓 · 03-280-5510 · 10:00–14:00、17:00–22:00",
+    meta_en:"桃園市中壢區新生路182號10樓 · 03-280-5510 · 10:00–14:00, 17:00–22:00",
+    q:"182手作平價創意料理 桃園市中壢區新生路182號" },
+];
+
+const DEPTS = {
+  it: { picks:CLAUDE_PICKS, badge:["Claude 推薦","Claude pick"], allowAdd:true, people:5, votes:2,
+        title:["IT部門聚餐投票","IT Dinner Vote"] },
+  tw: { picks:TW_PICKS, badge:["候選","Option"], allowAdd:false, people:28, votes:1,
+        title:["台灣廠聚餐投票","Taiwan Plant Dinner Vote"] },
+};
+const AREAS = ["高鐵站附近", "中壢附近", "新屋附近"]; // IT 新增餐廳的地區，存中文
+const AREA_EN = { "高鐵站附近":"Near HSR station", "中壢附近":"Near Zhongli", "新屋附近":"Near Xinwu",
+  "台北信義":"Taipei Xinyi", "桃園中茂":"Taoyuan Zhongmao", "中壢":"Zhongli", "大園":"Dayuan" };
+const ROLE_EN = { "鋼鐵人":"Iron Man", "美國隊長":"Captain America", "雷神索爾":"Thor", "黑寡婦":"Black Widow", "蜘蛛人":"Spider-Man" };
+
+// 後端錯誤代碼 → 英文訊息（中文直接用後端回傳的文字）
+const ERR_EN = {
+  bad_json:"The data format is invalid.", no_dept:"That department doesn't exist.", no_role:"That character doesn't exist.",
+  role_taken:"{who} has already been taken. Please pick another character.",
+  not_holder:"You haven't picked a character, or yours was reset. Please pick one again.",
+  too_many:"You can vote for at most {n} different restaurant(s).", no_add:"This department can't add restaurants.",
+  name_required:"Please enter the restaurant name.", price_required:"Please enter the estimated price per person.",
+  over_limit:"Over NT${limit} per person, so it can't be a candidate.", bad_link:"The link must start with https://.",
+  dup_name:"That restaurant is already on the list. Just vote for it.", unknown_action:"Unknown request.",
+  server:"Something went wrong on the server. Please try again later."
+};
+
+let lang = "zh";
+try { if (localStorage.getItem("dinnerLang") === "en") lang = "en"; } catch {}
+const T = (zh, en) => lang === "en" ? en : zh;
+const L = (o, k) => (lang === "en" && o[k + "_en"]) || o[k];
+const roleName = r => lang === "en" ? (ROLE_EN[r] || r) : r;
+const areaName = a => lang === "en" ? (AREA_EN[a] || a) : a;
+
+let dept = "", who = "", token = "", srv = null, saving = false, editing = false, online = false, releaseArmed = false, lastErr = null;
+try { // 舊版只有 IT 部門，角色存在沒有部門後綴的 key
+  const ow = localStorage.getItem("dinnerWho"), ot = localStorage.getItem("dinnerToken");
+  if (ow && !localStorage.getItem("dinnerWho_it")){ localStorage.setItem("dinnerWho_it", ow); localStorage.setItem("dinnerToken_it", ot || ""); }
+  localStorage.removeItem("dinnerWho"); localStorage.removeItem("dinnerToken");
+} catch {}
 
 const $ = id => document.getElementById(id);
 function h(tag, attrs, ...kids){
@@ -272,35 +451,51 @@ function h(tag, attrs, ...kids){
   return el;
 }
 const fmt = n => Number(n).toLocaleString("en-US");
-function setStatus(text){ const s=$("status"); s.hidden = !text; s.textContent = text || ""; }
 
-// 本機版和 Apps Script 版用同一套指令：{action, who, token, ...}
+// 狀態列存「訊息產生方式」，切換語言時重新翻譯
+let statusFn = null;
+function setStatus(fn){ statusFn = fn || null; paintStatus(); }
+function paintStatus(){ const s = $("status"); const text = statusFn ? statusFn() : ""; s.hidden = !text; s.textContent = text; }
+function errText(e){
+  if (lang === "en" && e && e.code && ERR_EN[e.code])
+    return ERR_EN[e.code].replace("{who}", roleName(e.who || "")).replace("{n}", e.n || "").replace("{limit}", fmt(e.limit || LIMIT));
+  return (e && e.message) || T("發生錯誤，請稍後再試。", "Something went wrong. Please try again.");
+}
+
+// 本機版和 Apps Script 版用同一套指令：{action, dept, who, token, ...}
 async function api(action, extra){
-  const body = JSON.stringify({action, who, token, ...(extra || {})});
+  const body = JSON.stringify({action, dept, who, token, ...(extra || {})});
   const r = API_URL
     ? await fetch(API_URL, { method:"POST", body })   // text/plain，避免跨網域預檢
     : await fetch("api", { method:"POST", headers:{"Content-Type":"application/json"}, body });
-  const j = await r.json().catch(() => ({error:"伺服器回應異常，請稍後再試。"}));
-  if (j.error) throw new Error(j.error);
+  const j = await r.json().catch(() => ({error:"伺服器回應異常，請稍後再試。", code:"server"}));
+  if (j.error){ const e = new Error(j.error); Object.assign(e, j); e.code = j.code; throw e; }
   return j;
 }
-const NET_ERR = API_URL ? "連不到投票資料，請檢查網路後重新整理。"
-  : "連不到投票伺服器，請確認主辦人的電腦還開著，並且你在公司網路內。";
+const netErr = () => API_URL ? T("連不到投票資料，請檢查網路後重新整理。", "Can't reach the voting data. Check your connection and reload.")
+  : T("連不到投票伺服器，請確認主辦人的電腦還開著，並且你在公司網路內。", "Can't reach the voting server. Make sure the organizer's computer is on and you're on the company network.");
+
 async function refresh(){
+  if (!dept) return;
+  const d = dept;
   try{
-    srv = await api("state");
-    if (!online){ online = true; setStatus(""); }
-    if (who && !srv.valid){ setWho("", ""); setStatus("你原本選的角色已經被重設，請重新選一個。"); }
+    const r = await api("state");
+    if (d !== dept) return; // 等回應時已經切換部門
+    srv = r;
+    if (!online){ online = true; setStatus(null); }
+    if (who && !srv.valid){ setWho("", ""); setStatus(() => T("你原本選的角色已經被重設，請重新選一個。", "Your character was reset. Please pick one again.")); }
   }catch(ex){
-    online = false; setStatus(ex instanceof TypeError ? NET_ERR : ex.message);
+    if (d !== dept) return;
+    online = false;
+    setStatus(ex instanceof TypeError ? netErr : () => errText(ex));
   }
   render();
 }
 function setWho(w, t){
   who = w; token = t; editing = false; releaseArmed = false; $("addArea").replaceChildren();
   try {
-    if (w){ localStorage.setItem("dinnerWho", w); localStorage.setItem("dinnerToken", t); }
-    else { localStorage.removeItem("dinnerWho"); localStorage.removeItem("dinnerToken"); }
+    if (w){ localStorage.setItem("dinnerWho_" + dept, w); localStorage.setItem("dinnerToken_" + dept, t); }
+    else { localStorage.removeItem("dinnerWho_" + dept); localStorage.removeItem("dinnerToken_" + dept); }
   } catch {}
 }
 async function claim(m){
@@ -309,85 +504,126 @@ async function claim(m){
   try{
     const prev = who; who = m; token = "";
     const r = await api("claim").catch(e => { who = prev; throw e; });
-    setWho(m, r.token); srv = r; setStatus("");
-  }catch(ex){ setStatus(ex.message); await refresh(); }
+    setWho(m, r.token); srv = r; setStatus(null);
+  }catch(ex){ setStatus(() => errText(ex)); await refresh(); }
   saving = false; render();
 }
 $("codeOut").addEventListener("click", async () => {
   if (!releaseArmed){ releaseArmed = true; render(); setTimeout(() => { releaseArmed = false; render(); }, 4000); return; }
   saving = true; render();
-  try{ await api("release"); setWho("", ""); setStatus(""); }
-  catch(ex){ setStatus(ex.message); }
+  try{ await api("release"); setWho("", ""); setStatus(null); }
+  catch(ex){ setStatus(() => errText(ex)); }
   saving = false; await refresh();
 });
 
+// 網址 #tw / #it 決定部門；沒有就顯示部門選擇
+function applyDept(){
+  const d = location.hash.slice(1);
+  dept = DEPTS[d] ? d : "";
+  $("deptPick").hidden = !!dept;
+  $("deptPage").hidden = !dept;
+  $("switchDept").hidden = !dept;
+  document.querySelectorAll("[data-dept]").forEach(el => { el.hidden = el.dataset.dept !== dept; });
+  srv = null; online = false; editing = false; releaseArmed = false; who = ""; token = "";
+  $("addArea").replaceChildren();
+  paintTitle();
+  if (!dept) return;
+  try { who = localStorage.getItem("dinnerWho_" + dept) || ""; token = localStorage.getItem("dinnerToken_" + dept) || ""; } catch {}
+  setStatus(() => T("正在連線投票資料…", "Connecting to the voting data…"));
+  render();
+  refresh();
+}
+window.addEventListener("hashchange", applyDept);
+
+function paintTitle(){
+  document.documentElement.lang = lang === "en" ? "en" : "zh-Hant";
+  document.title = dept ? DEPTS[dept].title[lang === "en" ? 1 : 0] : T("聚餐投票", "Dinner Vote");
+}
+$("langBtn").addEventListener("click", () => {
+  lang = lang === "en" ? "zh" : "en";
+  try { localStorage.setItem("dinnerLang", lang); } catch {}
+  paintTitle(); paintStatus();
+  if (!$("addArea").querySelector("form")) $("addArea").replaceChildren(); // 表單沒在填才重畫
+  render();
+});
+
 function allOptions(){
-  const list = CLAUDE_PICKS.map(c => ({...c, kind:"claude"}));
-  for (const d of srv?.mates || []){
+  const cfg = DEPTS[dept];
+  const list = cfg.picks.map(c => ({...c, kind:"claude"}));
+  if (cfg.allowAdd) for (const d of srv?.mates || []){
     list.push({ id:d.id, kind:"mate", mine: srv.mine?.added === d.id, name:d.name, area:d.area,
-      price:d.price, priceNote:"新增者預估", note:d.note, link: /^https?:\/\//i.test(d.link||"") ? d.link : "" });
+      price:d.price, priceNote:"新增者預估", priceNote_en:"Estimate by colleague", note:d.note,
+      link: /^https?:\/\//i.test(d.link||"") ? d.link : "" });
   }
   return list;
 }
 
 function render(){
+  if (!dept) return;
+  const cfg = DEPTS[dept];
+  const VOTES = srv?.votes || cfg.votes;
   const opts = allOptions();
   const has = !!(srv && srv.valid);
   const mine = has ? srv.mine.picks : [];
   const left = VOTES - mine.length;
 
   $("codeOn").hidden = !has;
-  $("codeShow").textContent = has ? who : "";
-  $("codeOut").textContent = releaseArmed ? "確定放掉這個角色？再按一次" : "換人";
+  $("codeShow").textContent = has ? roleName(who) : "";
+  $("codeOut").textContent = releaseArmed ? T("確定放掉這個角色？再按一次", "Release this character? Click again") : T("換人", "Switch");
   $("codeOut").disabled = saving;
   $("whoPick").replaceChildren(...(has || !srv ? [] : srv.members.map(m =>
-    h("button", {type:"button", disabled: m.taken || saving, title: m.taken ? "已經有人選了" : null,
-      onclick: () => claim(m.name)}, m.taken ? m.name + "（已被選）" : m.name))));
-  $("s1").classList.toggle("on", mine.length >= 1);
-  $("s2").classList.toggle("on", mine.length >= 2);
-  $("ballotMsg").textContent = !online ? "連線後才能投票"
-    : !has ? "先選一個還沒被選走的角色，就能投票"
-    : left === 2 ? "你還有 2 票，點餐廳旁的「投這家」"
-    : left === 1 ? "你還有 1 票（已存檔）"
-    : "兩票都投完了，已存檔。想改票就先取消一家";
-  $("optCount").textContent = opts.length + " 家";
+    h("button", {type:"button", disabled: m.taken || saving, title: m.taken ? T("已經有人選了", "Already taken") : null,
+      onclick: () => claim(m.name)}, roleName(m.name) + (m.taken ? T("（已被選）", " (taken)") : "")))));
+  $("stamps").replaceChildren(...Array.from({length:VOTES}, (_, i) => h("span", {class:"stamp" + (i < mine.length ? " on" : "")})));
+  $("ballotMsg").textContent = !online ? T("連線後才能投票", "Voting is available once connected")
+    : !has ? T("先選一個還沒被選走的角色，就能投票", "Pick a character nobody has taken yet, then vote")
+    : left > 0 && mine.length === 0 ? T("你有 " + VOTES + " 票，點餐廳旁的「投這家」", "You have " + VOTES + (VOTES > 1 ? " votes" : " vote") + ". Click \"Vote\" next to a restaurant")
+    : left > 0 ? T("你還有 " + left + " 票（已存檔）", left + " vote left (saved)")
+    : VOTES === 1 ? T("已經投票了，已存檔。想改票就先取消", "You've voted (saved). Cancel it first to change your vote")
+    : T("票都投完了，已存檔。想改票就先取消一家", "All votes cast (saved). Cancel one first to change");
+  $("optCount").textContent = lang === "en" ? opts.length + " places" : opts.length + " 家";
 
   const row = o => {
     const on = mine.includes(o.id);
     const btn = h("button", { class:"vote-btn"+(on?" on":""), type:"button",
       disabled: !has || saving || (!on && left === 0),
-      "aria-pressed": on ? "true":"false", onclick: () => toggleVote(o.id) }, on ? "已投 ✓" : "投這家");
+      "aria-pressed": on ? "true":"false", onclick: () => toggleVote(o.id) }, on ? T("已投 ✓", "Voted ✓") : T("投這家", "Vote"));
+    const pts = L(o, "points");
     const body = h("div", {class:"body"},
       h("div", {class:"top"},
-        h("h3", {}, o.name),
-        o.kind==="claude" ? h("span",{class:"badge claude"},"Claude 推薦") : h("span",{class:"badge mate"}, o.mine ? "你新增的" : "同事新增"),
-        h("span",{class:"badge area"}, o.area)),
-      o.points ? h("ul", {}, o.points.map(p => h("li",{},p))) : (o.note ? h("p",{class:"small"}, o.note) : null),
+        h("h3", {}, L(o, "name")),
+        o.kind==="claude" ? h("span",{class:"badge claude"}, cfg.badge[lang === "en" ? 1 : 0])
+          : h("span",{class:"badge mate"}, o.mine ? T("你新增的", "Added by you") : T("同事新增", "Added by a colleague")),
+        h("span",{class:"badge area"}, areaName(o.area))),
+      pts ? h("ul", {}, pts.map(p => h("li",{},p))) : (o.note ? h("p",{class:"small"}, o.note) : null),
       h("p", {class:"meta"},
-        o.meta ? o.meta + " · " : "",
-        o.q ? h("a",{href:maps(o.q),target:"_blank",rel:"noopener"},"Google 地圖") :
-          (o.link ? h("a",{href:o.link,target:"_blank",rel:"noopener"},"餐廳連結") : null)));
+        o.meta ? L(o, "meta") + " · " : "",
+        o.q ? h("a",{href:maps(o.q),target:"_blank",rel:"noopener"}, T("Google 地圖", "Google Maps")) :
+          (o.link ? h("a",{href:o.link,target:"_blank",rel:"noopener"}, T("餐廳連結", "Restaurant link")) : null)));
+    const per = o.perTable ? T("每桌", "Per table") : T("每人", "Per person");
     const price = h("div", {class:"price"},
-      h("div", {}, h("div",{class:"amt num"}, (o.id==="c-zao"?"約 ":"") + fmt(o.price)),
-                   h("div",{class:"per"}, "每人 · " + o.priceNote)),
+      h("div", {}, h("div",{class:"amt num"}, (o.approx ? T("約 ", "~") : "") + fmt(o.price)),
+                   h("div",{class:"per"}, per + " · " + L(o, "priceNote"))),
       btn);
     return h("div", {class:"item"+(on?" voted":"")}, body, price);
   };
 
   $("claudeList").replaceChildren(...opts.filter(o=>o.kind==="claude").map(row));
-  const mateOpts = opts.filter(o=>o.kind==="mate");
-  $("mateList").replaceChildren(...(mateOpts.length ? mateOpts.map(row)
-    : [h("div",{class:"empty",style:"border-top:0"},"還沒有人新增餐廳。想推薦別家的話，可以在下方新增一家。")]));
-
-  renderAdd(has);
-  renderResults(opts, mine);
+  if (cfg.allowAdd){
+    const mateOpts = opts.filter(o=>o.kind==="mate");
+    $("mateList").replaceChildren(...(mateOpts.length ? mateOpts.map(row)
+      : [h("div",{class:"empty",style:"border-top:0"}, T("還沒有人新增餐廳。想推薦別家的話，可以在下方新增一家。", "Nobody has added a restaurant yet. To suggest one, add it below."))]));
+    renderAdd(has);
+  }
+  renderResults(opts, mine, VOTES);
 }
 
-function renderResults(opts, mine){
-  $("voterCount").textContent = (srv?.voters || 0) + " / " + PEOPLE + " 人已投票";
+function renderResults(opts, mine, VOTES){
+  const PEOPLE = srv?.members?.length || DEPTS[dept].people;
+  $("voterCount").textContent = (srv?.voters || 0) + " / " + PEOPLE + T(" 人已投票", " voted");
   const box = $("results");
   if (!mine.length || !srv?.counts){
-    box.replaceChildren(h("p",{class:"locked"},"投完票後才看得到目前票數，避免影響大家的選擇。"));
+    box.replaceChildren(h("p",{class:"locked"}, T("投完票後才看得到目前票數，避免影響大家的選擇。", "Results appear after you vote, so nobody is swayed by the count.")));
     return;
   }
   const counts = srv.counts;
@@ -395,40 +631,43 @@ function renderResults(opts, mine){
   const max = Math.max(1, sorted[0]?.n || 0);
   const top = sorted[0]?.n || 0;
   const leaders = sorted.filter(x => x.n === top && top > 0);
-  const head = top === 0 ? "還沒有票" :
-    leaders.length > 1 ? "目前平手：" + leaders.map(x=>x.o.name).join("、") :
-    "目前領先：" + leaders[0].o.name + "（" + top + " 票）";
+  const head = top === 0 ? T("還沒有票", "No votes yet") :
+    leaders.length > 1 ? T("目前平手：", "Tied: ") + leaders.map(x=>L(x.o, "name")).join(T("、", ", ")) :
+    T("目前領先：", "Leading: ") + L(leaders[0].o, "name") + T("（" + top + " 票）", " (" + top + (top > 1 ? " votes)" : " vote)"));
+  const cast = Object.values(counts).reduce((a,b)=>a+b,0);
   box.replaceChildren(
     h("p",{}, h("b",{}, head)),
     ...sorted.map(({o,n}) => h("div",{class:"bar-row"+(n===top&&top>0?" lead":"")},
-      h("span",{class:"nm",title:o.name}, o.name),
+      h("span",{class:"nm",title:L(o, "name")}, L(o, "name")),
       h("div",{class:"track"}, h("div",{class:"fill",style:"width:"+(n/max*100)+"%"})),
       h("span",{class:"n num"}, n))),
-    h("p",{class:"muted small"}, "共 " + PEOPLE*VOTES + " 票，已投出 " + Object.values(counts).reduce((a,b)=>a+b,0) + " 票。"));
+    h("p",{class:"muted small"}, T("共 " + PEOPLE*VOTES + " 票，已投出 " + cast + " 票。", cast + " of " + PEOPLE*VOTES + " votes cast.")));
 }
 
 function renderAdd(has){
   const area = $("addArea");
-  if (!has){ area.replaceChildren(h("p",{class:"muted"},"先在上方選好代號，才能新增餐廳。")); return; }
+  if (!has){ area.replaceChildren(h("p",{class:"muted"}, T("先在上方選好角色，才能新增餐廳。", "Pick a character above to add a restaurant."))); return; }
   const mineDoc = (srv.mates || []).find(m => m.id === srv.mine.added);
   if (mineDoc && !editing){
     area.replaceChildren(h("div",{class:"row"},
-      h("p",{class:"muted",style:"flex:1;min-width:0"}, "你已經新增「" + mineDoc.name + "」，每人只能新增一家。"),
-      h("button",{class:"btn ghost",type:"button",onclick:()=>{editing=true;area.replaceChildren();renderAdd(true);}},"修改"),
-      h("button",{class:"btn danger",type:"button",disabled:saving,onclick:removeMine},"撤回")));
+      h("p",{class:"muted",style:"flex:1;min-width:0"}, T("你已經新增「" + mineDoc.name + "」，每人只能新增一家。", "You added \"" + mineDoc.name + "\". Each person can add one.")),
+      h("button",{class:"btn ghost",type:"button",onclick:()=>{editing=true;area.replaceChildren();renderAdd(true);}}, T("修改", "Edit")),
+      h("button",{class:"btn danger",type:"button",disabled:saving,onclick:removeMine}, T("撤回", "Withdraw"))));
     return;
   }
   if (area.querySelector("form")) return; // 保留正在輸入的內容
   const d = mineDoc || {};
+  const sel = h("select",{id:"fArea"}, AREAS.map(a => h("option",{value:a}, areaName(a))));
+  sel.value = d.area || AREAS[0];
   const f = h("form", {id:"addForm", novalidate:true},
-    h("label",{class:"full"},"餐廳名稱", h("input",{id:"fName",maxlength:"40",required:true,value:d.name||"",placeholder:"例：青埔某某火鍋"})),
-    h("label",{},"地區", (()=>{ const s=h("select",{id:"fArea"}, h("option",{},"高鐵站附近"), h("option",{},"中壢附近"), h("option",{},"新屋附近")); s.value=d.area||"高鐵站附近"; return s; })()),
-    h("label",{},"每人預估金額（含服務費）", h("input",{id:"fPrice",type:"number",inputmode:"numeric",min:"1",max:String(LIMIT),step:"1",required:true,value:d.price||"",placeholder:"最多 1500"})),
-    h("label",{class:"full"},"推薦原因（選填）", h("textarea",{id:"fNote",maxlength:"200",placeholder:"例：套餐 1,200 含服務費，有停車場"}, d.note||"")),
-    h("label",{class:"full"},"餐廳網址或地圖連結（選填）", h("input",{id:"fLink",type:"url",maxlength:"300",value:d.link||"",placeholder:"https://"})),
+    h("label",{class:"full"}, T("餐廳名稱", "Restaurant name"), h("input",{id:"fName",maxlength:"40",required:true,value:d.name||"",placeholder:T("例：青埔某某火鍋", "e.g. a hot pot place in Qingpu")})),
+    h("label",{}, T("地區", "Area"), sel),
+    h("label",{}, T("每人預估金額（含服務費）", "Estimated price per person (incl. service)"), h("input",{id:"fPrice",type:"number",inputmode:"numeric",min:"1",max:String(LIMIT),step:"1",required:true,value:d.price||"",placeholder:T("最多 1500", "Max 1500")})),
+    h("label",{class:"full"}, T("推薦原因（選填）", "Why you recommend it (optional)"), h("textarea",{id:"fNote",maxlength:"200",placeholder:T("例：套餐 1,200 含服務費，有停車場", "e.g. NT$1,200 set incl. service, has parking")}, d.note||"")),
+    h("label",{class:"full"}, T("餐廳網址或地圖連結（選填）", "Website or map link (optional)"), h("input",{id:"fLink",type:"url",maxlength:"300",value:d.link||"",placeholder:"https://"})),
     h("div",{class:"full row"},
-      h("button",{class:"btn",type:"submit",id:"fSubmit"}, mineDoc ? "儲存修改" : "新增餐廳"),
-      mineDoc ? h("button",{class:"btn ghost",type:"button",onclick:()=>{editing=false;area.replaceChildren();render();}},"取消") : null,
+      h("button",{class:"btn",type:"submit",id:"fSubmit"}, mineDoc ? T("儲存修改", "Save changes") : T("新增餐廳", "Add restaurant")),
+      mineDoc ? h("button",{class:"btn ghost",type:"button",onclick:()=>{editing=false;area.replaceChildren();render();}}, T("取消", "Cancel")) : null,
       h("span",{class:"err",id:"fErr",role:"alert"})));
   f.addEventListener("submit", submitMine);
   area.replaceChildren(f);
@@ -436,7 +675,7 @@ function renderAdd(has){
   pr.addEventListener("input", () => {
     const v = Number(pr.value);
     pr.classList.toggle("bad", pr.value !== "" && (v > LIMIT || v <= 0));
-    $("fErr").textContent = v > LIMIT ? "超過每人 1,500 元，這家不能列入候選。" : "";
+    $("fErr").textContent = v > LIMIT ? T("超過每人 1,500 元，這家不能列入候選。", ERR_EN.over_limit.replace("{limit}", fmt(LIMIT))) : "";
   });
 }
 
@@ -445,36 +684,37 @@ async function submitMine(e){
   const body = { name:$("fName").value.trim(), area:$("fArea").value, price:Math.round(Number($("fPrice").value)),
                  note:$("fNote").value.trim(), link:$("fLink").value.trim() };
   const err = $("fErr");
-  if (!body.name) return void (err.textContent = "請填寫餐廳名稱。");
-  if (!body.price || body.price <= 0) return void (err.textContent = "請填寫每人預估金額。");
-  if (body.price > LIMIT) return void (err.textContent = "超過每人 1,500 元，這家不能列入候選。");
+  if (!body.name) return void (err.textContent = T("請填寫餐廳名稱。", ERR_EN.name_required));
+  if (!body.price || body.price <= 0) return void (err.textContent = T("請填寫每人預估金額。", ERR_EN.price_required));
+  if (body.price > LIMIT) return void (err.textContent = T("超過每人 1,500 元，這家不能列入候選。", ERR_EN.over_limit.replace("{limit}", fmt(LIMIT))));
   saving = true; $("fSubmit").disabled = true; err.textContent = "";
   try{
     srv = await api("add", body);
     editing = false; $("addArea").replaceChildren();
-  }catch(ex){ err.textContent = ex.message; $("fSubmit").disabled = false; }
+  }catch(ex){ err.textContent = errText(ex); $("fSubmit").disabled = false; }
   saving = false; render();
 }
 
 async function removeMine(){
   saving = true; render();
   try{ srv = await api("remove"); }
-  catch(ex){ setStatus(ex.message); }
+  catch(ex){ setStatus(() => errText(ex)); }
   saving = false; editing = false; $("addArea").replaceChildren(); render();
 }
 
 async function toggleVote(id){
   if (saving || !srv?.valid) return;
+  const VOTES = srv.votes || DEPTS[dept].votes;
   const mine = srv.mine.picks;
   const next = mine.includes(id) ? mine.filter(x=>x!==id) : mine.length < VOTES ? [...mine, id] : null;
   if (!next) return;
   saving = true; render();
-  try{ srv = await api("vote", { picks: next }); setStatus(""); }
-  catch(ex){ setStatus(ex.message); }
+  try{ srv = await api("vote", { picks: next }); setStatus(null); }
+  catch(ex){ setStatus(() => errText(ex)); }
   saving = false; render();
 }
 
-refresh();
+applyDept();
 // Apps Script 每天有執行時間上限，雲端版拉長更新間隔
 setInterval(() => { if (!saving && !document.hidden) refresh(); }, API_URL ? 15000 : 5000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !saving) refresh(); });
