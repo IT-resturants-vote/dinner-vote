@@ -192,7 +192,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
         <ul>
           <li>訂位時再問一次目前價格和服務費，網路上的價格可能已調整。</li>
           <li>鐵板燒：3 位以上要先付訂金 1,000 元，只收現金，當天可折抵。</li>
-          <li>燒肉：訂位時問清楚會長 SET 的價格和是否收服務費，5 人總額抓 7,000 元內。</li>
+          <li>燒肉：訂位時問清楚會長盛合的價格和是否收服務費，5 人總額抓 7,000 元內。</li>
           <li>自助餐：只訂週一到週四晚餐，週五晚上和週末會超過預算。</li>
         </ul>
       </div>
@@ -221,13 +221,13 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
         <thead><tr><th>餐廳</th><th class="r">餐費</th><th class="r">服務費</th><th class="r">其他</th><th class="r">每人合計</th><th class="r">是否在 1,500 內</th></tr></thead>
         <tbody>
           <tr><td>海童鐵板料亭（1280 套餐）</td><td class="r num">1,280</td><td class="r num">128</td><td class="r num">0</td><td class="r num">1,408</td><td class="r ok">是</td></tr>
-          <tr><td>藏王極上燒肉（會長 SET＋加點）</td><td class="r num">約 1,200–1,400</td><td class="r num">訂位時確認</td><td class="r num">0</td><td class="r num">約 1,300</td><td class="r ok">是</td></tr>
+          <tr><td>藏王極上燒肉 中壢店（會長盛合＋加點）</td><td class="r num">約 1,200–1,400</td><td class="r num">訂位時確認</td><td class="r num">0</td><td class="r num">約 1,300</td><td class="r ok">是</td></tr>
           <tr><td>Cozzi 逸·市集（平日晚餐）</td><td class="r num">1,180</td><td class="r num">118</td><td class="r num">0</td><td class="r num">1,298</td><td class="r ok">是</td></tr>
           <tr><td>Cozzi 逸·市集（週五晚上、週末）</td><td class="r num">1,480</td><td class="r num">148</td><td class="r num">0</td><td class="r num">1,628</td><td class="r" style="color:var(--warn);font-weight:700">否</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted small">海童的 1680 套餐每人含服務費約 1,848 元，超過預算，訂位時請指定 1280 套餐。藏王燒肉依網路食記「4 人份組合餐每人約 1,000 多元」估算，加點時注意總額。Cozzi 的價格是飯店公告的 2026 年價格。新屋附近沒找到每人 1,000 元以上、又不是合菜的餐廳，所以三家都在高鐵站附近；想吃中壢或新屋的話可以自己新增。</p>
+    <p class="muted small">海童的 1680 套餐每人含服務費約 1,848 元，超過預算，訂位時請指定 1280 套餐。藏王燒肉以 4 人份會長盛合 4,580 元，加上 5 人份加點估算，加點時注意總額。Cozzi 的價格是飯店公告的 2026 年價格。新屋附近沒找到每人 1,000 元以上、又不是合菜的餐廳；想吃新屋的話可以自己新增。</p>
   </section>
 
   <footer>頁面不顯示誰投了哪一家，只顯示每家餐廳的票數。餐廳資訊整理自網路食記，價格與營業時間以店家當日公告為準。</footer>
@@ -246,10 +246,10 @@ const CLAUDE_PICKS = [
     points:["高鐵站旁的無菜單鐵板燒，前菜、魚、海鮮、肉品、炒飯、甜點一路吃","套餐一道道上，大約 1.5 到 2 小時吃完","價格固定，最好控制預算"],
     meta:"大園區高鐵北路二段182號 · 03-287-8358 · 全預約制，訂金 1,000 元（現金）",
     q:"海童鐵板料亭 高鐵北路二段182號" },
-  { id:"c-zao", name:"藏王極上燒肉餐酒館 青埔店", area:"高鐵站附近", price:1300, priceNote:"組合餐＋加點估算",
-    points:["日本 A5 和牛燒肉，店員在桌邊代烤，不用自己顧烤網","4 人份「會長 SET」有 5 種和牛，再加點一些就夠 5 人吃","在 KIRI 國際原住民族文創園區內，離高鐵站很近"],
-    meta:"大園區大成路二段100號1-12 · 03-287-7568 · 平日 17:30 起，週末 11:30–15:30、17:00 起",
-    q:"藏王極上燒肉餐酒館 青埔店" },
+  { id:"c-zao", name:"藏王極上燒肉餐酒館 中壢店", area:"中壢附近", price:1300, priceNote:"組合餐＋加點估算",
+    points:["日本 A5 和牛燒肉，店員在桌邊代烤，不用自己顧烤網","4 人份「A5 和牛極究會長盛合」4,580 元，再加點一些就夠 5 人吃","在中壢高中附近，旁邊有大型停車場"],
+    meta:"中壢區中央西路二段268號 · 03-493-8878 · 平日 17:00 起，週末 11:30–16:00、17:00 起",
+    q:"藏王極上燒肉餐酒館 中壢區中央西路二段268號" },
   { id:"c-cozzi", name:"和逸飯店 Cozzi Market 逸·市集", area:"高鐵站附近", price:1298, priceNote:"平日晚餐 1,180＋10%",
     points:["飯店自助餐吃到飽，中西日式都有，各拿各的，最不用協調點菜","只能訂週一到週四晚餐；週五晚上和週末每人 1,628 元，會超過預算","在 Xpark 和華泰名品城旁邊，飯店有停車場"],
     meta:"中壢區春德路105號（和逸飯店桃園館）· 晚餐 18:00–21:00",
