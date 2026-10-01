@@ -138,7 +138,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">部門聚餐 · 5 人 · 高鐵站附近 或 新屋九斗里附近</div>
+    <div class="eyebrow">部門聚餐 · 5 人 · 高鐵站、中壢 或 新屋九斗里附近</div>
     <h1>這次聚餐吃哪家？</h1>
     <p class="muted">每人兩票、匿名投票。每家餐廳都要能在每人 1,500 元以內吃完（含服務費），沒有人需要自己補錢。</p>
     <div class="rules">
@@ -227,7 +227,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
         </tbody>
       </table>
     </div>
-    <p class="muted small">海童的 1680 套餐每人含服務費約 1,848 元，超過預算，訂位時請指定 1280 套餐。藏王燒肉依網路食記「4 人份組合餐每人約 1,000 多元」估算，加點時注意總額。Cozzi 的價格是飯店公告的 2026 年價格。新屋附近沒找到每人 1,000 元以上、又不是合菜的餐廳，所以三家都在高鐵站附近；想吃新屋的話可以自己新增。</p>
+    <p class="muted small">海童的 1680 套餐每人含服務費約 1,848 元，超過預算，訂位時請指定 1280 套餐。藏王燒肉依網路食記「4 人份組合餐每人約 1,000 多元」估算，加點時注意總額。Cozzi 的價格是飯店公告的 2026 年價格。新屋附近沒找到每人 1,000 元以上、又不是合菜的餐廳，所以三家都在高鐵站附近；想吃中壢或新屋的話可以自己新增。</p>
   </section>
 
   <footer>頁面不顯示誰投了哪一家，只顯示每家餐廳的票數。餐廳資訊整理自網路食記，價格與營業時間以店家當日公告為準。</footer>
@@ -422,7 +422,7 @@ function renderAdd(has){
   const d = mineDoc || {};
   const f = h("form", {id:"addForm", novalidate:true},
     h("label",{class:"full"},"餐廳名稱", h("input",{id:"fName",maxlength:"40",required:true,value:d.name||"",placeholder:"例：青埔某某火鍋"})),
-    h("label",{},"地區", (()=>{ const s=h("select",{id:"fArea"}, h("option",{},"高鐵站附近"), h("option",{},"新屋附近")); s.value=d.area||"高鐵站附近"; return s; })()),
+    h("label",{},"地區", (()=>{ const s=h("select",{id:"fArea"}, h("option",{},"高鐵站附近"), h("option",{},"中壢附近"), h("option",{},"新屋附近")); s.value=d.area||"高鐵站附近"; return s; })()),
     h("label",{},"每人預估金額（含服務費）", h("input",{id:"fPrice",type:"number",inputmode:"numeric",min:"1",max:String(LIMIT),step:"1",required:true,value:d.price||"",placeholder:"最多 1500"})),
     h("label",{class:"full"},"推薦原因（選填）", h("textarea",{id:"fNote",maxlength:"200",placeholder:"例：套餐 1,200 含服務費，有停車場"}, d.note||"")),
     h("label",{class:"full"},"餐廳網址或地圖連結（選填）", h("input",{id:"fLink",type:"url",maxlength:"300",value:d.link||"",placeholder:"https://"})),
