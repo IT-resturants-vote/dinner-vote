@@ -145,6 +145,10 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 .who-pick button{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:6px 14px;cursor:pointer;font-weight:500}
 .who-pick button:hover:not(:disabled){border-color:var(--jade);color:var(--jade)}
 .who-pick button:disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
+.who-pick button.taken{border-style:dashed;color:var(--muted)}
+.pin-box{flex-basis:100%;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px dashed var(--jade);border-radius:8px;background:var(--jade-soft);grid-template-columns:none}
+.pin-box label{color:var(--ink);font-size:14px}
+.pin-box input{width:7em;letter-spacing:.4em;font-family:var(--f-num);text-align:center}
 .code-on{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 .code-on .btn{padding:5px 12px}
 </style>
@@ -195,6 +199,15 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
     <div class="msg" id="ballotMsg"></div>
     <div class="code-on" id="codeOn" hidden><span><span class="zh">你是</span><span class="en">You are</span> <b id="codeShow"></b></span><button class="btn ghost" type="button" id="codeOut"></button></div>
     <div class="who-pick" id="whoPick" role="group" aria-label="Characters"></div>
+    <form class="pin-box" id="pinBox" hidden novalidate>
+      <label for="pinInput" id="pinLabel"></label>
+      <div class="row">
+        <input id="pinInput" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
+        <button class="btn" type="submit" id="pinOk"></button>
+        <button class="btn ghost" type="button" id="pinCancel"></button>
+        <span class="err" id="pinErr" role="alert"></span>
+      </div>
+    </form>
   </div>
 
   <section id="optionsSec">
@@ -421,6 +434,9 @@ const ERR_EN = {
   name_required:"Please enter the restaurant name.", price_required:"Please enter the estimated price per person.",
   over_limit:"Over NT${limit} per person, so it can't be a candidate.", bad_link:"The link must start with https://.",
   dup_name:"That restaurant is already on the list. Just vote for it.", unknown_action:"Unknown request.",
+  pin_format:"The PIN must be 4 digits.", pin_wrong:"Wrong PIN. {left} tries left.",
+  pin_locked:"Too many wrong PINs. Please try again in 10 minutes.",
+  no_pin:"{who} has no PIN set. Ask the organizer to release it.", not_taken:"Nobody has {who} yet. Just pick it.",
   server:"Something went wrong on the server. Please try again later."
 };
 
@@ -458,7 +474,8 @@ function setStatus(fn){ statusFn = fn || null; paintStatus(); }
 function paintStatus(){ const s = $("status"); const text = statusFn ? statusFn() : ""; s.hidden = !text; s.textContent = text; }
 function errText(e){
   if (lang === "en" && e && e.code && ERR_EN[e.code])
-    return ERR_EN[e.code].replace("{who}", roleName(e.who || "")).replace("{n}", e.n || "").replace("{limit}", fmt(e.limit || LIMIT));
+    return ERR_EN[e.code].replace("{who}", roleName(e.who || "")).replace("{n}", e.n || "").replace("{limit}", fmt(e.limit || LIMIT)).replace("{left}", e.left ?? "");
+  if (e && e.code === "pin_wrong" && e.left != null) return e.message + "還可以再試 " + e.left + " 次。";
   return (e && e.message) || T("發生錯誤，請稍後再試。", "Something went wrong. Please try again.");
 }
 
@@ -498,16 +515,37 @@ function setWho(w, t){
     else { localStorage.removeItem("dinnerWho_" + dept); localStorage.removeItem("dinnerToken_" + dept); }
   } catch {}
 }
-async function claim(m){
-  if (saving) return;
-  saving = true; render();
-  try{
-    const prev = who; who = m; token = "";
-    const r = await api("claim").catch(e => { who = prev; throw e; });
-    setWho(m, r.token); srv = r; setStatus(null);
-  }catch(ex){ setStatus(() => errText(ex)); await refresh(); }
-  saving = false; render();
+// PIN 面板：claim＝選新角色並設 PIN、recover＝用 PIN 找回已被選的角色、set＝舊角色補設 PIN
+let pinMode = null; // {kind, role}
+function openPin(kind, role){
+  pinMode = {kind, role};
+  $("pinInput").value = ""; $("pinErr").textContent = "";
+  render();
+  $("pinInput").focus();
 }
+$("pinCancel").addEventListener("click", () => { pinMode = null; render(); });
+$("pinBox").addEventListener("submit", async e => {
+  e.preventDefault();
+  const mode = pinMode || {kind:"set", role:who};
+  const pin = $("pinInput").value.trim();
+  if (!/^\d{4}$/.test(pin)){ $("pinErr").textContent = T("PIN 要是 4 位數字。", ERR_EN.pin_format); return; }
+  if (saving) return;
+  saving = true; $("pinErr").textContent = ""; render();
+  try{
+    if (mode.kind === "set"){
+      srv = await api("setpin", { pin });
+    } else {
+      const prev = who; who = mode.role; token = "";
+      const r = await api(mode.kind === "claim" ? "claim" : "recover", { pin }).catch(err => { who = prev; throw err; });
+      setWho(mode.role, r.token); srv = r;
+    }
+    pinMode = null; $("pinInput").value = ""; setStatus(null);
+  }catch(ex){
+    $("pinErr").textContent = errText(ex);
+    if (ex.code === "role_taken" || ex.code === "not_taken"){ pinMode = null; setStatus(() => errText(ex)); await refresh(); }
+  }
+  saving = false; render();
+});
 $("codeOut").addEventListener("click", async () => {
   if (!releaseArmed){ releaseArmed = true; render(); setTimeout(() => { releaseArmed = false; render(); }, 4000); return; }
   saving = true; render();
@@ -524,7 +562,7 @@ function applyDept(){
   $("deptPage").hidden = !dept;
   $("switchDept").hidden = !dept;
   document.querySelectorAll("[data-dept]").forEach(el => { el.hidden = el.dataset.dept !== dept; });
-  srv = null; online = false; editing = false; releaseArmed = false; who = ""; token = "";
+  srv = null; online = false; editing = false; releaseArmed = false; who = ""; token = ""; pinMode = null;
   $("addArea").replaceChildren();
   paintTitle();
   if (!dept) return;
@@ -571,9 +609,30 @@ function render(){
   $("codeShow").textContent = has ? roleName(who) : "";
   $("codeOut").textContent = releaseArmed ? T("確定放掉這個角色？再按一次", "Release this character? Click again") : T("換人", "Switch");
   $("codeOut").disabled = saving;
+  // 已被選但有 PIN 的角色可以點，用 PIN 找回；沒有 PIN 的就鎖住
   $("whoPick").replaceChildren(...(has || !srv ? [] : srv.members.map(m =>
-    h("button", {type:"button", disabled: m.taken || saving, title: m.taken ? T("已經有人選了", "Already taken") : null,
-      onclick: () => claim(m.name)}, roleName(m.name) + (m.taken ? T("（已被選）", " (taken)") : "")))));
+    h("button", {type:"button", class: m.taken ? "taken" : null, disabled: (m.taken && !m.hasPin) || saving,
+      title: m.taken ? (m.hasPin ? T("這是你的角色？點這裡輸入 PIN 找回", "Yours? Click and enter your PIN") : T("已經有人選了", "Already taken")) : null,
+      onclick: () => openPin(m.taken ? "recover" : "claim", m.name)},
+      roleName(m.name) + (m.taken ? T("（已被選）", " (taken)") : "")))));
+  // PIN 面板
+  const needSet = has && srv.mine && !srv.mine.hasPin;
+  const mode = !has ? (pinMode && pinMode.kind !== "set" ? pinMode : null) : (needSet ? {kind:"set", role:who} : null);
+  $("pinBox").hidden = !mode;
+  if (mode){
+    const r = roleName(mode.role);
+    $("pinLabel").textContent =
+      mode.kind === "claim" ? T("幫「" + r + "」設定一組 4 位數 PIN 並記下來。之後換電腦或清了瀏覽器，可以用它找回角色和原本的票。",
+                               "Set a 4-digit PIN for " + r + " and remember it. If you switch computers or clear your browser, use it to get your character and votes back.")
+      : mode.kind === "recover" ? T("「" + r + "」是你的角色嗎？輸入當初設定的 PIN 就能找回。",
+                                   "Is " + r + " yours? Enter the PIN you set to get it back.")
+      : T("請幫「" + r + "」設定一組 4 位數 PIN 並記下來。之後換電腦或清了瀏覽器，可以用它找回角色和原本的票。",
+          "Please set a 4-digit PIN for " + r + " and remember it. If you switch computers or clear your browser, use it to get your character and votes back.");
+    $("pinOk").textContent = mode.kind === "recover" ? T("找回角色", "Get it back") : mode.kind === "claim" ? T("確定選這個角色", "Pick this character") : T("儲存 PIN", "Save PIN");
+    $("pinCancel").hidden = mode.kind === "set";
+    $("pinCancel").textContent = T("取消", "Cancel");
+    $("pinOk").disabled = saving;
+  }
   $("stamps").replaceChildren(...Array.from({length:VOTES}, (_, i) => h("span", {class:"stamp" + (i < mine.length ? " on" : "")})));
   $("ballotMsg").textContent = !online ? T("連線後才能投票", "Voting is available once connected")
     : !has ? T("先選一個還沒被選走的角色，就能投票", "Pick a character nobody has taken yet, then vote")
